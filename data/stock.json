@@ -1,0 +1,44 @@
+{
+  "categories": {
+    "fruit": {
+      "amount": 25,
+      "updatedBy": "464999947859787778",
+      "updatedAt": "2026-05-17T06:09:04.030Z"
+    },
+    "alcohol": {
+      "amount": 20,
+      "updatedBy": "1006310774035206244",
+      "updatedAt": "2026-05-17T06:03:01.811Z"
+    },
+    "dairy": {
+      "amount": 75,
+      "updatedBy": "1006310774035206244",
+      "updatedAt": "2026-05-17T06:03:09.286Z"
+    },
+    "grains": {
+      "amount": 55,
+      "updatedBy": "1006310774035206244",
+      "updatedAt": "2026-05-17T06:03:14.531Z"
+    },
+    "protein": {
+      "amount": 8,
+      "updatedBy": "1006310774035206244",
+      "updatedAt": "2026-05-17T06:03:19.851Z"
+    },
+    "fish": {
+      "amount": 99,
+      "updatedBy": "1006310774035206244",
+      "updatedAt": "2026-05-17T06:03:26.171Z"
+    },
+    "speciality": {
+      "amount": 22,
+      "updatedBy": "1006310774035206244",
+      "updatedAt": "2026-05-17T06:04:13.244Z"
+    },
+    "vegetables": {
+      "amount": 47,
+      "updatedBy": "1006310774035206244",
+      "updatedAt": "2026-05-17T06:03:36.765Z"
+    }
+  }
+}

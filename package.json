@@ -1,0 +1,20 @@
+{
+  "name": "blackwoodsbot",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A Discord bot for the Blackwoods server.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "register": "node src/deploy-commands.js"
+  },
+  "engines": {
+    "node": ">=18.18.0"
+  },
+  "dependencies": {
+    "discord.js": "^14.19.3",
+    "dotenv": "^16.6.1"
+  }
+}

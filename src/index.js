@@ -166,7 +166,7 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 
     if (interaction.isStringSelectMenu()) {
-      if (interaction.customId && interaction.customId.startsWith('stock-categories:')) {
+      if (interaction.customId && interaction.customId === 'stock-categories') {
         try {
           const mod = await import('./commands/stock.js');
           if (typeof mod.handleCategorySelection === 'function') {

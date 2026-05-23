@@ -47,19 +47,12 @@ const pingRoleId = parseRoleId(process.env.FARMER_ROLE_IDS ?? process.env.FAMER_
 
 export const data = new SlashCommandBuilder()
   .setName('stock')
-  .setDescription('Request a stock refill alert for one or more food categories.')
-  .addIntegerOption(option =>
-    option
-      .setName('amount')
-      .setDescription('How much is needed for each selected category.')
-      .setRequired(true),
-  );
+  .setDescription('Request a stock refill alert for one or more food categories.');
 
 export async function execute(interaction) {
-  const amount = interaction.options.getInteger('amount', true);
   const payload = {
-    content: `Select one or more categories for a request of up to ${amount} each.`,
-    components: [buildCategorySelectRow(amount)],
+    content: 'Select one or more categories for the stock request.',
+    components: [buildCategorySelectRow()],
     ephemeral: true,
   };
 
@@ -67,10 +60,9 @@ export async function execute(interaction) {
 }
 
 export async function handleCategorySelection(interaction) {
-  const amount = Number(interaction.customId.split(':')[1]);
   const selectedKeys = interaction.values;
 
-  if (!Number.isInteger(amount) || amount <= 0 || selectedKeys.length === 0) {
+  if (selectedKeys.length === 0) {
     await interaction.reply({ content: 'That stock request could not be processed.', ephemeral: true });
     return;
   }
@@ -82,11 +74,11 @@ export async function handleCategorySelection(interaction) {
   }
 
   const roleMentions = pingRoleId ? `||<@&${pingRoleId}>||` : '';
-  const categoryLabels = formatCategoryList(selectedCategories.map(category => category.label));
-  const alertMessage = `Our high priority stock need is ${categoryLabels}`;
+  const categoryLabels = selectedCategories.map(category => category.label);
+  const alertMessage = 'Our high priority stock need is:';
   const embed = new EmbedBuilder()
     .setTitle(alertMessage)
-    .setDescription(`Need up to ${amount} of each selected category.`)
+    .setDescription(formatCategoryBullets(categoryLabels))
     .setColor(0xc9a227);
 
   if (selectedCategories.length === 1 && selectedCategories[0].imageUrl) {
@@ -102,9 +94,9 @@ export async function handleCategorySelection(interaction) {
   await interaction.reply(payload);
 }
 
-function buildCategorySelectRow(amount) {
+function buildCategorySelectRow() {
   const menu = new StringSelectMenuBuilder()
-    .setCustomId(`stock-categories:${amount}`)
+    .setCustomId('stock-categories')
     .setPlaceholder('Choose one or more categories')
     .setMinValues(1)
     .setMaxValues(Object.keys(stockCategories).length)
@@ -119,13 +111,8 @@ function buildCategorySelectRow(amount) {
   return new ActionRowBuilder().addComponents(menu);
 }
 
-function formatCategoryList(categories) {
-  if (categories.length === 1) {
-    return categories[0];
-  }
-
-  const head = categories.slice(0, -1).join(', ');
-  return `${head} and ${categories[categories.length - 1]}`;
+function formatCategoryBullets(categories) {
+  return categories.map(category => `- ${category}`).join('\n');
 }
 
 function parseRoleId(value) {

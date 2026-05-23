@@ -53,7 +53,7 @@ export async function buildWarehouseListEmbed() {
 
 export const data = new SlashCommandBuilder()
   .setName('warehouse')
-  .setDescription('Record or view warehouse stock levels')
+  .setDescription('Record warehouse stock levels')
   .addSubcommand(sub =>
     sub
       .setName('set')
@@ -66,18 +66,6 @@ export const data = new SlashCommandBuilder()
           .addChoices(...Object.keys(stockCategories).map(k => ({ name: `${stockCategories[k].emoji} ${stockCategories[k].label}`, value: k }))),
       )
       .addIntegerOption(opt => opt.setName('amount').setDescription('New amount').setRequired(true)),
-  )
-  .addSubcommand(sub =>
-    sub
-      .setName('view')
-      .setDescription('View current stock levels')
-      .addStringOption(opt =>
-        opt
-          .setName('category')
-          .setDescription('Specific category to view')
-          .setRequired(false)
-          .addChoices(...Object.keys(stockCategories).map(k => ({ name: `${stockCategories[k].emoji} ${stockCategories[k].label}`, value: k }))),
-      ),
   )
   .addSubcommand(sub => sub.setName('bulk').setDescription('Enter counts for all categories in one modal'))
   .addSubcommand(sub => sub.setName('list').setDescription('Post a public list of all stock levels'));
@@ -125,25 +113,6 @@ export async function execute(interaction) {
     return;
   }
 
-  if (sub === 'view') {
-    if (categoryKey) {
-      const info = dataObj.categories[categoryKey] || { amount: 0 };
-      const embed = new EmbedBuilder()
-        .setTitle(`${stockCategories[categoryKey].label} stock`)
-        .setDescription(`${stockCategories[categoryKey].emoji} **${info.amount}** units`)
-        .setTimestamp(info.updatedAt ? new Date(info.updatedAt) : undefined)
-        .setColor(0x3498db);
-
-      if (stockCategories[categoryKey].imageUrl) embed.setImage(stockCategories[categoryKey].imageUrl);
-
-      await interaction.reply({ embeds: [embed], ephemeral: false });
-      return;
-    }
-    const embed = await buildWarehouseListEmbed();
-
-    await interaction.reply({ embeds: [embed], ephemeral: false });
-    return;
-  }
 }
 
 export async function handleBulkModal(interaction) {

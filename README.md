@@ -8,7 +8,7 @@ This repo is now set up as a runnable `discord.js` bot with a small command fram
 - `/ping` to check bot latency
 - `/help` to list available commands
 - `/stock` to request a stock alert for a food category with a required amount and ping the configured role
-- `/warehouse` to record or view warehouse stock levels (`set`, `view`, `bulk`)
+- `/warehouse` to record warehouse stock levels (`set`, `bulk`)
 - scheduled warehouse list posts at 2am, 10am, and 6pm Eastern time
 - a shared command loader for adding more slash commands
 

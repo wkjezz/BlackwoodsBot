@@ -3,6 +3,26 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+function getAdminRoleIds() {
+  const keys = ['WRANGLER_ROLE_IDS', 'RANGER_ROLE_IDS', 'DESPERADO_ROLE_IDS', 'PROPRIETROR_ROLE_IDS'];
+  const ids = [];
+  for (const k of keys) {
+    const v = process.env[k];
+    if (!v) continue;
+    ids.push(...v.split(',').map(s => s.trim()).filter(Boolean));
+  }
+  return ids;
+}
+
+function memberHasAdminRole(interaction) {
+  const allowed = getAdminRoleIds();
+  if (!allowed.length) return true; // no restriction configured
+  if (!interaction.inGuild() || !interaction.member) return false;
+  const cache = interaction.member.roles?.cache;
+  if (!cache) return false;
+  return cache.some(r => allowed.includes(r.id));
+}
+
 const dataFilePath = fileURLToPath(new URL('../../data/store.json', import.meta.url));
 
 const storeCategories = {
@@ -74,6 +94,10 @@ export const data = new SlashCommandBuilder()
 export async function execute(interaction) {
   const sub = interaction.options.getSubcommand();
   if (sub === 'bulk') {
+    if (!memberHasAdminRole(interaction)) {
+      await interaction.reply({ content: 'You do not have permission to use this command.', ephemeral: true });
+      return;
+    }
     const keys = Object.keys(storeCategories);
     const first = keys[0];
     const modal = new ModalBuilder().setCustomId(`store-bulk-${first}`).setTitle(`Count: ${storeCategories[first].label}`);
@@ -96,6 +120,10 @@ export async function execute(interaction) {
   const dataObj = await readData();
 
   if (sub === 'set') {
+    if (!memberHasAdminRole(interaction)) {
+      await interaction.reply({ content: 'You do not have permission to use this command.', ephemeral: true });
+      return;
+    }
     const amount = interaction.options.getInteger('amount', true);
     dataObj.categories[categoryKey] = { amount, updatedBy: interaction.user.id, updatedAt: new Date().toISOString() };
     await writeData(dataObj);

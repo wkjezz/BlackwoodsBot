@@ -145,6 +145,24 @@ client.on(Events.InteractionCreate, async interaction => {
           return;
         }
       }
+
+      if (interaction.customId && interaction.customId.startsWith('store-bulk')) {
+        try {
+          const mod = await import('./commands/store.js');
+          if (typeof mod.handleBulkModal === 'function') {
+            await mod.handleBulkModal(interaction);
+            return;
+          }
+        } catch (e) {
+          console.error('Error handling store modal submit', e);
+          try {
+            await interaction.reply({ content: `Failed processing input: ${e.message}`, ephemeral: true });
+          } catch (replyErr) {
+            console.error('Failed to send error reply for store modal submit', replyErr);
+          }
+          return;
+        }
+      }
     }
 
     // route buttons for warehouse bulk flow
@@ -160,6 +178,21 @@ client.on(Events.InteractionCreate, async interaction => {
           }
         } catch (e) {
           console.error('Error handling warehouse bulk button', e);
+          try { await interaction.reply({ content: `Failed: ${e.message}`, ephemeral: true }); } catch {}
+        }
+      }
+
+      if (interaction.customId && (interaction.customId.startsWith('store-bulk-start-') || interaction.customId.startsWith('store-bulk-next-'))) {
+        try {
+          const parts = interaction.customId.split('-');
+          const key = parts.slice(3).join('-');
+          const mod = await import('./commands/store.js');
+          if (typeof mod.showBulkModal === 'function') {
+            await mod.showBulkModal(interaction, key);
+            return;
+          }
+        } catch (e) {
+          console.error('Error handling store bulk button', e);
           try { await interaction.reply({ content: `Failed: ${e.message}`, ephemeral: true }); } catch {}
         }
       }

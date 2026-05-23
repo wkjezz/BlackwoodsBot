@@ -1,0 +1,12 @@
+{
+  "categories": {
+    "fruit": { "amount": 0, "updatedBy": null, "updatedAt": null },
+    "alcohol": { "amount": 0, "updatedBy": null, "updatedAt": null },
+    "dairy": { "amount": 0, "updatedBy": null, "updatedAt": null },
+    "grains": { "amount": 0, "updatedBy": null, "updatedAt": null },
+    "protein": { "amount": 0, "updatedBy": null, "updatedAt": null },
+    "fish": { "amount": 0, "updatedBy": null, "updatedAt": null },
+    "speciality": { "amount": 0, "updatedBy": null, "updatedAt": null },
+    "vegetables": { "amount": 0, "updatedBy": null, "updatedAt": null }
+  }
+}

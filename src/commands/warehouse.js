@@ -91,6 +91,10 @@ export const data = new SlashCommandBuilder()
   .addSubcommand(sub => sub.setName('bulk').setDescription('Enter counts for all categories in one modal'))
   .addSubcommand(sub => sub.setName('list').setDescription('Post a public list of all stock levels'));
 
+// Metadata for role-restricted subcommands
+export const allowedRoleEnv = ['WRANGLER_ROLE_IDS', 'RANGER_ROLE_IDS', 'DESPERADO_ROLE_IDS', 'PROPRIETROR_ROLE_IDS'];
+export const restrictedSubcommands = ['set', 'bulk'];
+
 export async function execute(interaction) {
   const sub = interaction.options.getSubcommand();
   if (sub === 'bulk') {

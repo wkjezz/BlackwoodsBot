@@ -35,6 +35,22 @@ async function writeData(data) {
   await writeFile(dataFilePath, JSON.stringify(data, null, 2), 'utf8');
 }
 
+function buildWarehouseListLines(dataObj) {
+  return Object.keys(stockCategories).map(k => {
+    const info = dataObj.categories[k] || { amount: 0 };
+    return `${stockCategories[k].emoji} **${stockCategories[k].label}** — ${info.amount} units`;
+  });
+}
+
+export async function buildWarehouseListEmbed() {
+  const dataObj = await readData();
+  return new EmbedBuilder()
+    .setTitle('Warehouse stock levels')
+    .setDescription(buildWarehouseListLines(dataObj).join('\n'))
+    .setColor(0x3498db)
+    .setTimestamp();
+}
+
 export const data = new SlashCommandBuilder()
   .setName('warehouse')
   .setDescription('Record or view warehouse stock levels')
@@ -50,19 +66,6 @@ export const data = new SlashCommandBuilder()
           .addChoices(...Object.keys(stockCategories).map(k => ({ name: `${stockCategories[k].emoji} ${stockCategories[k].label}`, value: k }))),
       )
       .addIntegerOption(opt => opt.setName('amount').setDescription('New amount').setRequired(true)),
-  )
-  .addSubcommand(sub =>
-    sub
-      .setName('adjust')
-      .setDescription('Adjust (add/subtract) stock for a category')
-      .addStringOption(opt =>
-        opt
-          .setName('category')
-          .setDescription('Category to adjust')
-          .setRequired(true)
-          .addChoices(...Object.keys(stockCategories).map(k => ({ name: `${stockCategories[k].emoji} ${stockCategories[k].label}`, value: k }))),
-      )
-      .addIntegerOption(opt => opt.setName('delta').setDescription('Positive or negative delta').setRequired(true)),
   )
   .addSubcommand(sub =>
     sub
@@ -122,25 +125,6 @@ export async function execute(interaction) {
     return;
   }
 
-  if (sub === 'adjust') {
-    const delta = interaction.options.getInteger('delta', true);
-    const current = dataObj.categories[categoryKey]?.amount ?? 0;
-    const next = current + delta;
-    dataObj.categories[categoryKey] = { amount: next, updatedBy: interaction.user.id, updatedAt: new Date().toISOString() };
-    await writeData(dataObj);
-
-    const embed = new EmbedBuilder()
-      .setTitle(`Adjusted ${stockCategories[categoryKey].label} stock`)
-      .setDescription(`${stockCategories[categoryKey].emoji} ${delta >= 0 ? 'Added' : 'Removed'} **${Math.abs(delta)}** units — now **${next}**`)
-      .setColor(0xf1c40f)
-      .setTimestamp();
-
-    if (stockCategories[categoryKey].imageUrl) embed.setImage(stockCategories[categoryKey].imageUrl);
-
-    await interaction.reply({ embeds: [embed], ephemeral: true });
-    return;
-  }
-
   if (sub === 'view') {
     if (categoryKey) {
       const info = dataObj.categories[categoryKey] || { amount: 0 };
@@ -155,32 +139,7 @@ export async function execute(interaction) {
       await interaction.reply({ embeds: [embed], ephemeral: false });
       return;
     }
-    const lines = Object.keys(stockCategories).map(k => {
-      const info = dataObj.categories[k] || { amount: 0 };
-      return `${stockCategories[k].emoji} **${stockCategories[k].label}** — ${info.amount} units`;
-    });
-
-    const embed = new EmbedBuilder()
-      .setTitle('Warehouse stock levels')
-      .setDescription(lines.join('\n'))
-      .setColor(0x3498db)
-      .setTimestamp();
-
-    await interaction.reply({ embeds: [embed], ephemeral: false });
-    return;
-  }
-
-  if (sub === 'list') {
-    const lines = Object.keys(stockCategories).map(k => {
-      const info = dataObj.categories[k] || { amount: 0 };
-      return `${stockCategories[k].emoji} **${stockCategories[k].label}** — ${info.amount} units`;
-    });
-
-    const embed = new EmbedBuilder()
-      .setTitle('Warehouse stock levels')
-      .setDescription(lines.join('\n'))
-      .setColor(0x3498db)
-      .setTimestamp();
+    const embed = await buildWarehouseListEmbed();
 
     await interaction.reply({ embeds: [embed], ephemeral: false });
     return;

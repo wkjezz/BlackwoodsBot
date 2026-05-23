@@ -43,13 +43,7 @@ const stockCategories = {
   },
 };
 
-const pingRoleIds = [
-  ...parseRoleIds(process.env.SLINGER_ROLE_IDS),
-  ...parseRoleIds(process.env.WRANGLER_ROLE_IDS),
-  ...parseRoleIds(process.env.RANGER_ROLE_IDS),
-  ...parseRoleIds(process.env.DESPERADO_ROLE_IDS),
-  ...parseRoleIds(process.env.PROPRIETROR_ROLE_IDS),
-];
+const pingRoleId = parseRoleId(process.env.FAMER_ROLE_IDS ?? process.env.Famer_Role_Ids);
 
 export const data = new SlashCommandBuilder()
   .setName('stock')
@@ -69,13 +63,20 @@ export const data = new SlashCommandBuilder()
         { name: '✨ Speciality', value: 'speciality' },
         { name: '🥦 Vegetables', value: 'vegetables' },
       ),
+  )
+  .addIntegerOption(option =>
+    option
+      .setName('amount')
+      .setDescription('How many are needed.')
+      .setRequired(true),
   );
 
 export async function execute(interaction) {
   const categoryKey = interaction.options.getString('category', true);
+  const amount = interaction.options.getInteger('amount', true);
   const category = stockCategories[categoryKey];
-  const alertMessage = `${category.emoji} Stock Low - We need more ${category.label} Goods`;
-  const roleMentions = pingRoleIds.map(roleId => `||<@&${roleId}>||`).join(' ');
+  const alertMessage = `Our target is to product ${amount} amount of ${category.label}`;
+  const roleMentions = pingRoleId ? `||<@&${pingRoleId}>||` : '';
   const embed = new EmbedBuilder()
     .setTitle(alertMessage)
     .setColor(0xc9a227);
@@ -87,19 +88,16 @@ export async function execute(interaction) {
   const payload = {
     content: roleMentions || undefined,
     embeds: [embed],
-    allowedMentions: { roles: pingRoleIds },
+    allowedMentions: pingRoleId ? { roles: [pingRoleId] } : { parse: [] },
   };
 
   await interaction.reply(payload);
 }
 
-function parseRoleIds(value) {
+function parseRoleId(value) {
   if (!value) {
-    return [];
+    return null;
   }
 
-  return value
-    .split(',')
-    .map(roleId => roleId.trim())
-    .filter(Boolean);
+  return value.trim() || null;
 }

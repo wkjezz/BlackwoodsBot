@@ -7,8 +7,9 @@ This repo is now set up as a runnable `discord.js` bot with a small command fram
 
 - `/ping` to check bot latency
 - `/help` to list available commands
-- `/stock` to request a stock alert for a food category and ping configured roles
-- `/warehouse` to record or view warehouse stock levels (`set`, `adjust`, `view`, `bulk`)
+- `/stock` to request a stock alert for a food category with a required amount and ping the configured role
+- `/warehouse` to record or view warehouse stock levels (`set`, `view`, `bulk`)
+- scheduled warehouse list posts at 2am, 10am, and 6pm Eastern time
 - a shared command loader for adding more slash commands
 
 ## Setup
@@ -24,8 +25,9 @@ This repo is now set up as a runnable `discord.js` bot with a small command fram
 	- `DISCORD_TOKEN`
 	- `DISCORD_CLIENT_ID`
 	- `DISCORD_GUILD_ID` if you want to register commands to a test server first
-	- the rank role IDs to ping on stock alerts: `SLINGER_ROLE_IDS`, `WRANGLER_ROLE_IDS`, `RANGER_ROLE_IDS`, `DESPERADO_ROLE_IDS`, and `PROPRIETROR_ROLE_IDS`
+	- `FAMER_ROLE_IDS` (or `Famer_Role_Ids`) for the single role that gets pinged when `/stock` is used
 	- optional image URLs for each stock type, like `STOCK_FRUIT_IMAGE_URL` and `STOCK_SPECIALITY_IMAGE_URL`
+	- `WAREHOUSE_LIST_CHANNEL_ID` for the channel that should receive the scheduled warehouse list posts
 
 3. Register the slash commands:
 
@@ -45,4 +47,8 @@ Add a new file in `src/commands/` that exports `data` and `execute`. The loader 
 
 ## Stock alerts
 
-The `/stock` command posts an embed like `Stock Low - We need more Fruit Goods`, pings the configured rank roles, and shows a picture when the matching `STOCK_*_IMAGE_URL` value is set. If you want multiple role IDs for a rank, separate them with commas in the matching environment variable.
+The `/stock` command now asks for how many are needed, then posts an embed like `Our target is to product 10 amount of Fruit`, pings the configured role, and shows a picture when the matching `STOCK_*_IMAGE_URL` value is set.
+
+## Scheduled warehouse posts
+
+The bot can automatically post the warehouse stock list to a channel at 2:00am, 10:00am, and 6:00pm Eastern time. Set `WAREHOUSE_LIST_CHANNEL_ID` to the target channel and keep the bot running. The schedule uses `America/New_York`, so it follows daylight saving time instead of staying on fixed UTC offsets.

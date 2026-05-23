@@ -74,7 +74,7 @@ export async function handleCategorySelection(interaction) {
   }
 
   const roleMentions = pingRoleId ? `||<@&${pingRoleId}>||` : '';
-  const categoryLabels = selectedCategories.map(category => category.label);
+  const categoryLabels = selectedCategories.map(category => `${category.emoji} ${category.label}`);
   const alertMessage = 'Our high priority stock need is:';
   const embed = new EmbedBuilder()
     .setTitle(alertMessage)

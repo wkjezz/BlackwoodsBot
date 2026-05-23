@@ -165,6 +165,23 @@ client.on(Events.InteractionCreate, async interaction => {
       }
     }
 
+    if (interaction.isStringSelectMenu()) {
+      if (interaction.customId && interaction.customId.startsWith('stock-categories:')) {
+        try {
+          const mod = await import('./commands/stock.js');
+          if (typeof mod.handleCategorySelection === 'function') {
+            await mod.handleCategorySelection(interaction);
+            return;
+          }
+        } catch (e) {
+          console.error('Error handling stock category selection', e);
+          try {
+            await interaction.reply({ content: `Failed: ${e.message}`, ephemeral: true });
+          } catch {}
+        }
+      }
+    }
+
     // route buttons for warehouse bulk flow
     if (interaction.isButton()) {
       if (interaction.customId && (interaction.customId.startsWith('warehouse-bulk-start-') || interaction.customId.startsWith('warehouse-bulk-next-'))) {

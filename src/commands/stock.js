@@ -1,4 +1,4 @@
-import { EmbedBuilder, SlashCommandBuilder } from 'discord.js';
+import { ActionRowBuilder, EmbedBuilder, SlashCommandBuilder, StringSelectMenuBuilder } from 'discord.js';
 
 const stockCategories = {
   fruit: {
@@ -47,42 +47,50 @@ const pingRoleId = parseRoleId(process.env.FARMER_ROLE_IDS ?? process.env.FAMER_
 
 export const data = new SlashCommandBuilder()
   .setName('stock')
-  .setDescription('Request a stock refill alert for a food category.')
-  .addStringOption(option =>
-    option
-      .setName('category')
-      .setDescription('Choose the stock category to request.')
-      .setRequired(true)
-      .addChoices(
-        { name: '🍓 Fruit', value: 'fruit' },
-        { name: '🍺 Alcohol', value: 'alcohol' },
-        { name: '🧀 Dairy', value: 'dairy' },
-        { name: '🌾 Grains', value: 'grains' },
-        { name: '🥩 Protein', value: 'protein' },
-        { name: '🐟 Fish', value: 'fish' },
-        { name: '✨ Speciality', value: 'speciality' },
-        { name: '🥦 Vegetables', value: 'vegetables' },
-      ),
-  )
+  .setDescription('Request a stock refill alert for one or more food categories.')
   .addIntegerOption(option =>
     option
       .setName('amount')
-      .setDescription('How many are needed.')
+      .setDescription('How much is needed for each selected category.')
       .setRequired(true),
   );
 
 export async function execute(interaction) {
-  const categoryKey = interaction.options.getString('category', true);
   const amount = interaction.options.getInteger('amount', true);
-  const category = stockCategories[categoryKey];
-  const alertMessage = `Our target is to product ${amount} amount of ${category.label}`;
+  const payload = {
+    content: `Select one or more categories for a request of up to ${amount} each.`,
+    components: [buildCategorySelectRow(amount)],
+    ephemeral: true,
+  };
+
+  await interaction.reply(payload);
+}
+
+export async function handleCategorySelection(interaction) {
+  const amount = Number(interaction.customId.split(':')[1]);
+  const selectedKeys = interaction.values;
+
+  if (!Number.isInteger(amount) || amount <= 0 || selectedKeys.length === 0) {
+    await interaction.reply({ content: 'That stock request could not be processed.', ephemeral: true });
+    return;
+  }
+
+  const selectedCategories = selectedKeys.map(key => stockCategories[key]).filter(Boolean);
+  if (selectedCategories.length === 0) {
+    await interaction.reply({ content: 'No valid stock categories were selected.', ephemeral: true });
+    return;
+  }
+
   const roleMentions = pingRoleId ? `||<@&${pingRoleId}>||` : '';
+  const categoryLabels = formatCategoryList(selectedCategories.map(category => category.label));
+  const alertMessage = `Our high priority stock need is ${categoryLabels}`;
   const embed = new EmbedBuilder()
     .setTitle(alertMessage)
+    .setDescription(`Need up to ${amount} of each selected category.`)
     .setColor(0xc9a227);
 
-  if (category.imageUrl) {
-    embed.setImage(category.imageUrl);
+  if (selectedCategories.length === 1 && selectedCategories[0].imageUrl) {
+    embed.setImage(selectedCategories[0].imageUrl);
   }
 
   const payload = {
@@ -92,6 +100,32 @@ export async function execute(interaction) {
   };
 
   await interaction.reply(payload);
+}
+
+function buildCategorySelectRow(amount) {
+  const menu = new StringSelectMenuBuilder()
+    .setCustomId(`stock-categories:${amount}`)
+    .setPlaceholder('Choose one or more categories')
+    .setMinValues(1)
+    .setMaxValues(Object.keys(stockCategories).length)
+    .addOptions(
+      Object.entries(stockCategories).map(([key, category]) => ({
+        label: category.label,
+        value: key,
+        emoji: category.emoji,
+      })),
+    );
+
+  return new ActionRowBuilder().addComponents(menu);
+}
+
+function formatCategoryList(categories) {
+  if (categories.length === 1) {
+    return categories[0];
+  }
+
+  const head = categories.slice(0, -1).join(', ');
+  return `${head} and ${categories[categories.length - 1]}`;
 }
 
 function parseRoleId(value) {

@@ -48,6 +48,7 @@ export async function buildWarehouseListEmbed() {
     .setTitle('Warehouse stock levels')
     .setDescription(buildWarehouseListLines(dataObj).join('\n'))
     .setColor(0x3498db)
+    .setImage('https://i.ibb.co/0yJrxw5P/warehouse.png')
     .setTimestamp();
 }
 
@@ -90,6 +91,12 @@ export async function execute(interaction) {
 
     // show first modal directly (command interaction can show modal)
     await interaction.showModal(modal);
+    return;
+  }
+
+  if (sub === 'list') {
+    const embed = await buildWarehouseListEmbed();
+    await interaction.reply({ embeds: [embed] });
     return;
   }
 

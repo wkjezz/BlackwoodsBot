@@ -48,6 +48,7 @@ export async function buildStoreListEmbed() {
     .setTitle('Store stock levels')
     .setDescription(buildStoreListLines(dataObj).join('\n'))
     .setColor(0x3498db)
+    .setImage('https://i.ibb.co/sDkVr1x/restaurant.png')
     .setTimestamp();
 }
 

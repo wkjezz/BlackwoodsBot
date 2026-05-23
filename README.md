@@ -10,6 +10,7 @@ This repo is now set up as a runnable `discord.js` bot with a small command fram
 - `/stock` to request a stock alert for a food category with a required amount and ping the configured role
 - `/warehouse` to record warehouse stock levels (`set`, `bulk`)
 - `/store` to record store stock levels (`set`, `bulk`, `list`)
+- `/inventory` to show both warehouse and store stock levels together
 - scheduled warehouse list posts at 2am, 10am, and 6pm Eastern time
 - a shared command loader for adding more slash commands
 

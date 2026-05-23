@@ -26,7 +26,7 @@ This repo is now set up as a runnable `discord.js` bot with a small command fram
 	- `DISCORD_TOKEN`
 	- `DISCORD_CLIENT_ID`
 	- `DISCORD_GUILD_ID` if you want to register commands to a test server first
-	- `FAMER_ROLE_IDS` (or `Famer_Role_Ids`) for the single role that gets pinged when `/stock` is used
+	- `FARMER_ROLE_IDS` (or the older misspelling `FAMER_ROLE_IDS`) for the single role that gets pinged when `/stock` is used
 	- optional image URLs for each stock type, like `STOCK_FRUIT_IMAGE_URL` and `STOCK_SPECIALITY_IMAGE_URL`
 	- optional store image URLs, like `STORE_FRUIT_IMAGE_URL` and `STORE_SPECIALITY_IMAGE_URL`
 	- `WAREHOUSE_LIST_CHANNEL_ID` for the channel that should receive the scheduled warehouse list posts

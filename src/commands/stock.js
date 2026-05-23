@@ -43,7 +43,7 @@ const stockCategories = {
   },
 };
 
-const pingRoleId = parseRoleId(process.env.FAMER_ROLE_IDS ?? process.env.Famer_Role_Ids);
+const pingRoleId = parseRoleId(process.env.FARMER_ROLE_IDS ?? process.env.FAMER_ROLE_IDS ?? process.env.Famer_Role_Ids);
 
 export const data = new SlashCommandBuilder()
   .setName('stock')

@@ -251,8 +251,10 @@ function buttonStyleForCount(count, maxCount) {
   return ButtonStyle.Primary;
 }
 
-function buildPollEmbed(poll) {
-  const currentPageIndex = Math.max(0, Math.min(poll.currentPageIndex ?? 0, poll.dateKeys.length - 1));
+function buildPollEmbed(poll, pageIndex = undefined) {
+  const currentPageIndex = typeof pageIndex === 'number'
+    ? Math.max(0, Math.min(pageIndex, poll.dateKeys.length - 1))
+    : Math.max(0, Math.min(poll.messagePageIndex ?? 0, poll.dateKeys.length - 1));
   const currentDateKey = poll.dateKeys[currentPageIndex];
   const currentCounts = createCountMap(poll, currentDateKey);
   const maxCurrentCount = Math.max(...currentCounts, 0);
@@ -311,8 +313,10 @@ function buildPollEmbed(poll) {
     .setTimestamp();
 }
 
-function buildPollComponents(poll) {
-  const currentPageIndex = Math.max(0, Math.min(poll.currentPageIndex ?? 0, poll.dateKeys.length - 1));
+function buildPollComponents(poll, pageIndex = undefined, showClose = false) {
+  const currentPageIndex = typeof pageIndex === 'number'
+    ? Math.max(0, Math.min(pageIndex, poll.dateKeys.length - 1))
+    : Math.max(0, Math.min(poll.messagePageIndex ?? 0, poll.dateKeys.length - 1));
   const currentDateKey = poll.dateKeys[currentPageIndex];
   const currentCounts = createCountMap(poll, currentDateKey);
   const maxCurrentCount = Math.max(...currentCounts, 0);
@@ -329,11 +333,13 @@ function buildPollComponents(poll) {
       .setLabel('Next day')
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(currentPageIndex >= poll.dateKeys.length - 1 || locked),
-    new ButtonBuilder()
-      .setCustomId(`schedpoll:${poll.id}:page:${currentPageIndex}:close:close`)
-      .setLabel(locked ? 'Closed' : 'Close poll')
-      .setStyle(ButtonStyle.Danger)
-      .setDisabled(locked),
+    ...(showClose ? [
+      new ButtonBuilder()
+        .setCustomId(`schedpoll:${poll.id}:page:${currentPageIndex}:close:close`)
+        .setLabel(locked ? 'Closed' : 'Close poll')
+        .setStyle(ButtonStyle.Danger)
+        .setDisabled(locked),
+    ] : []),
   );
 
   const slotRows = [];
@@ -455,12 +461,12 @@ export async function execute(interaction) {
     slotMinutes: config.slotMinutes,
     slots: config.slots,
     dateKeys: config.dateKeys,
-    currentPageIndex: 0,
+    messagePageIndex: 0,
     wrapsMidnight: config.wrapsMidnight,
     responses: {},
   };
 
-  const message = await interaction.reply({ embeds: [buildPollEmbed(poll)], components: buildPollComponents(poll), fetchReply: true });
+  const message = await interaction.reply({ embeds: [buildPollEmbed(poll)], components: buildPollComponents(poll, undefined, false), fetchReply: true });
   poll.messageId = message.id;
   await savePoll(poll);
 }
@@ -488,22 +494,26 @@ export async function handleButtonInteraction(interaction) {
   }
 
   const pageIndex = Math.max(0, Math.min(parsed.pageIndex, poll.dateKeys.length - 1));
-  poll.currentPageIndex = pageIndex;
-
   const dateKey = poll.dateKeys[pageIndex];
   if (!dateKey) {
     await interaction.reply({ content: 'That scheduling poll page is no longer valid.', ephemeral: true });
     return true;
   }
-
   if (!poll.responses[interaction.user.id]) {
     poll.responses[interaction.user.id] = {};
   }
 
   if (parsed.action === 'nav') {
-    poll.currentPageIndex = parsed.target === 'prev' ? Math.max(0, pageIndex - 1) : Math.min(poll.dateKeys.length - 1, pageIndex + 1);
-    await updatePoll(poll);
-    await interaction.update({ embeds: [buildPollEmbed(poll)], components: buildPollComponents(poll) });
+    // Show this page only to the interacting user (ephemeral view)
+    const targetPage = parsed.target === 'prev' ? Math.max(0, pageIndex - 1) : Math.min(poll.dateKeys.length - 1, pageIndex + 1);
+    const canManage = interaction.user.id === poll.createdBy || memberHasAllowedRole(interaction);
+    const embed = buildPollEmbed(poll, targetPage);
+    const components = buildPollComponents(poll, targetPage, canManage);
+    try {
+      await interaction.reply({ embeds: [embed], components, ephemeral: true });
+    } catch (e) {
+      try { await interaction.followUp({ embeds: [embed], components, ephemeral: true }); } catch {}
+    }
     return true;
   }
 
@@ -515,7 +525,25 @@ export async function handleButtonInteraction(interaction) {
 
     poll.closed = true;
     await updatePoll(poll);
-    await interaction.update({ embeds: [buildPollEmbed(poll)], components: buildPollComponents(poll) });
+
+    // Update the main public poll message to show closed state
+    try {
+      const channel = await interaction.client.channels.fetch(poll.channelId);
+      if (channel && channel.isTextBased()) {
+        const message = await channel.messages.fetch(poll.messageId);
+        if (message) {
+          await message.edit({ embeds: [buildPollEmbed(poll, poll.messagePageIndex)], components: buildPollComponents(poll, poll.messagePageIndex, false) });
+        }
+      }
+    } catch (e) {
+      console.error('Failed updating main poll message after close', e);
+    }
+
+    try {
+      await interaction.reply({ content: 'Poll closed.', ephemeral: true });
+    } catch (e) {
+      try { await interaction.followUp({ content: 'Poll closed.', ephemeral: true }); } catch {}
+    }
     return true;
   }
 
@@ -540,6 +568,27 @@ export async function handleButtonInteraction(interaction) {
   poll.responses[interaction.user.id][dateKey] = currentSelections;
 
   await updatePoll(poll);
-  await interaction.update({ embeds: [buildPollEmbed(poll)], components: buildPollComponents(poll) });
+
+  // update the message the user interacted with (ephemeral or main)
+  try {
+    const canManage = interaction.user.id === poll.createdBy || memberHasAllowedRole(interaction);
+    await interaction.update({ embeds: [buildPollEmbed(poll, pageIndex)], components: buildPollComponents(poll, pageIndex, canManage) });
+  } catch (e) {
+    try { await interaction.reply({ embeds: [buildPollEmbed(poll, pageIndex)], components: buildPollComponents(poll, pageIndex, canManage), ephemeral: true }); } catch {}
+  }
+
+  // Also update the main public poll message so aggregated counts refresh
+  try {
+    const channel = await interaction.client.channels.fetch(poll.channelId);
+    if (channel && channel.isTextBased()) {
+      const message = await channel.messages.fetch(poll.messageId);
+      if (message) {
+        await message.edit({ embeds: [buildPollEmbed(poll, poll.messagePageIndex)], components: buildPollComponents(poll, poll.messagePageIndex, false) });
+      }
+    }
+  } catch (e) {
+    console.error('Failed to update main poll message after slot toggle', e);
+  }
+
   return true;
 }

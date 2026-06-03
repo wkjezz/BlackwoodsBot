@@ -184,6 +184,21 @@ client.on(Events.InteractionCreate, async interaction => {
 
     // route buttons for warehouse bulk flow
     if (interaction.isButton()) {
+      if (interaction.customId && interaction.customId.startsWith('schedpoll:')) {
+        try {
+          const mod = await import('./commands/schedule-poll.js');
+          if (typeof mod.handleButtonInteraction === 'function') {
+            const handled = await mod.handleButtonInteraction(interaction);
+            if (handled) {
+              return;
+            }
+          }
+        } catch (e) {
+          console.error('Error handling scheduling poll button', e);
+          try { await interaction.reply({ content: `Failed: ${e.message}`, ephemeral: true }); } catch {}
+        }
+      }
+
       if (interaction.customId && (interaction.customId.startsWith('warehouse-bulk-start-') || interaction.customId.startsWith('warehouse-bulk-next-'))) {
         try {
           const parts = interaction.customId.split('-');

@@ -5,7 +5,7 @@ import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const TIME_ZONE = 'Etc/GMT+5';
-const TIME_ZONE_LABEL = 'EST (UTC-5)';
+const TIME_ZONE_LABEL = 'Los Santos Time (EST)';
 const DATA_FILE_PATH = fileURLToPath(new URL('../../data/schedule-polls.json', import.meta.url));
 const MAX_DAYS = 7;
 const MAX_SLOTS_PER_DAY = 20;
@@ -93,8 +93,7 @@ function formatDateLabel(dateKey) {
 }
 
 function formatTimeLabel(totalMinutes) {
-  const adjustedMinutes = totalMinutes + (5 * 60);
-  const totalDayMinutes = ((adjustedMinutes % (24 * 60)) + (24 * 60)) % (24 * 60);
+  const totalDayMinutes = ((totalMinutes % (24 * 60)) + (24 * 60)) % (24 * 60);
   const hours = Math.floor(totalDayMinutes / 60);
   const minutes = totalDayMinutes % 60;
   const period = hours >= 12 ? 'PM' : 'AM';
@@ -124,8 +123,13 @@ function buildSlotDefinitions(startHour, endHour, slotMinutes) {
   const slots = [];
   const startMinutes = startHour * 60;
   const endMinutes = endHour * 60;
+  const wrapsMidnight = endMinutes <= startMinutes;
+  const totalRangeMinutes = wrapsMidnight
+    ? (24 * 60 - startMinutes) + endMinutes
+    : endMinutes - startMinutes;
 
-  for (let current = startMinutes; current < endMinutes; current += slotMinutes) {
+  for (let offset = 0; offset < totalRangeMinutes; offset += slotMinutes) {
+    const current = (startMinutes + offset) % (24 * 60);
     slots.push({
       index: slots.length,
       label: formatTimeLabel(current),
@@ -175,8 +179,12 @@ function getScheduleConfig(interaction) {
     throw new Error(`Days must be between 1 and ${MAX_DAYS}.`);
   }
 
-  if (startHour < 0 || startHour > 23 || endHour < 1 || endHour > 24 || endHour <= startHour) {
-    throw new Error('The time window must be valid and end after it starts.');
+  if (startHour < 0 || startHour > 23 || endHour < 0 || endHour > 24) {
+    throw new Error('The time window must use valid 24-hour values between 0 and 24.');
+  }
+
+  if (startHour === endHour) {
+    throw new Error('The time window must cover at least one slot.');
   }
 
   if (slotMinutes < 15 || slotMinutes > 180 || slotMinutes % 15 !== 0) {
@@ -201,6 +209,7 @@ function getScheduleConfig(interaction) {
     slotMinutes,
     slots,
     dateKeys: buildDateKeys(startDateKey, days),
+    wrapsMidnight: endHour <= startHour,
   };
 }
 
@@ -278,11 +287,13 @@ function buildPollEmbed(poll) {
     .setColor(maxCurrentCount > 0 ? 0x2ecc71 : 0x3498db)
     .setDescription(
       [
-        'Click the buttons below to toggle your availability.',
-        `Timezone default: ${poll.timeZoneLabel}`,
+        'Pick the days you can make it, then click the time buttons that work for you.',
+        `All times are shown in ${poll.timeZoneLabel}.`,
+        'Green marks the strongest overlap on the current day.',
         poll.closed ? 'This poll is closed and locked.' : 'This poll is still open.',
+        poll.wrapsMidnight ? 'Overnight window enabled: the end hour wraps into the next day.' : null,
         `Page ${currentPageIndex + 1} of ${poll.dateKeys.length} • ${currentDateLabel}`,
-      ].join('\n'),
+      ].filter(Boolean).join('\n'),
     )
     .addFields(
       {
@@ -292,11 +303,11 @@ function buildPollEmbed(poll) {
       {
         name: 'Best overlaps',
         value: bestMatches.length > 0
-          ? bestMatches.map(match => `${formatDateLabel(match.dateKey, poll.timeZone)} - ${poll.slots[match.slotIndex].label} (${match.count})`).join('\n')
+          ? bestMatches.map(match => `${formatDateLabel(match.dateKey)} - ${poll.slots[match.slotIndex].label} (${match.count})`).join('\n')
           : 'No responses yet.',
       },
     )
-    .setFooter({ text: 'Green marks the strongest overlap on the current date.' })
+    .setFooter({ text: 'Use Previous day and Next day to move through the schedule.' })
     .setTimestamp();
 }
 
@@ -445,6 +456,7 @@ export async function execute(interaction) {
     slots: config.slots,
     dateKeys: config.dateKeys,
     currentPageIndex: 0,
+    wrapsMidnight: config.wrapsMidnight,
     responses: {},
   };
 

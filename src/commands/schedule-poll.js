@@ -530,13 +530,10 @@ export async function handleButtonInteraction(interaction) {
     : [];
 
   const selectionIndex = currentSelections.indexOf(slotIndex);
-  let actionMessage;
   if (selectionIndex >= 0) {
     currentSelections.splice(selectionIndex, 1);
-    actionMessage = `Removed ${poll.slots[slotIndex].label} for ${formatDateLabel(dateKey)}.`;
   } else {
     currentSelections.push(slotIndex);
-    actionMessage = `Added ${poll.slots[slotIndex].label} for ${formatDateLabel(dateKey)}.`;
   }
 
   currentSelections.sort((left, right) => left - right);
@@ -544,6 +541,5 @@ export async function handleButtonInteraction(interaction) {
 
   await updatePoll(poll);
   await interaction.update({ embeds: [buildPollEmbed(poll)], components: buildPollComponents(poll) });
-  await interaction.followUp({ content: actionMessage, ephemeral: true }).catch(() => {});
   return true;
 }
